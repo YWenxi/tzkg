@@ -1,0 +1,11 @@
+# ignore virtual environment
+/knowledge-reasoning
+/knowledge-reasoning/*
+
+# ignore compiled files of mln.cpp
+algorithm/mln/mln
+
+# ignore dataset
+test-data
+
+# ignore experiments output
