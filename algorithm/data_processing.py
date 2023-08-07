@@ -2,6 +2,7 @@ import json
 
 import pandas as pd
 from rdflib import Graph, Namespace, Literal, URIRef
+from typing import Union
 
 __all__ = ["Transfer"]
 
@@ -12,7 +13,11 @@ def save_to_file(data_dict, output_file):
 
 
 class Transfer:
-    def __init__(self, data_dir, name_space=None) -> None:
+    def __init__(self, data_dir: str, name_space: Union[None, str]=None) -> None:
+        """Initialize the transfer tool.
+        data_dir (str): The data file to upload.
+        name_space: Common prefix for urlref; default `None`.
+        """
         self.g = Graph()
         self.data_type = data_dir.split(".")[-1]
         if self.data_type == "csv":
@@ -40,7 +45,11 @@ class Transfer:
         pass
         
 
-    def csv_to_onto(self, out_name, out_format="rdf"):
+    def csv_to_onto(self, out_name:str, out_format:str="rdf") -> None:
+        """Convert `.csv` files to `xml`-like files with extention in {`.rdf`, `.csv`}.
+        - out_name (str): filename for the output file without extension.
+        - out_format (str): file extension for the output file.
+        """
         if self.data_type == "txt":
             for line in self.data:
                 subject, predicate, obj = line.strip().split("\t")
@@ -56,16 +65,26 @@ class Transfer:
 
         self.g.serialize(destination=f'{out_name}.{out_format}', format="xml")
 
-    def _to_triples(self, out_name, out_format="csv"):
-        df = pd.DataFrame(self.data)
-        if out_format == "csv":
-            df.to_csv(f"{out_name}.csv", index=False)
-        elif out_format == "txt":
-            txt_data = '\n'.join('\t'.join(str(val) for val in d.values()) for d in self.data)
-            with open(f"{out_name}.txt", "w") as txtfile:
-                txtfile.write(txt_data)
-        else:
+
+    def _to_triples(self, out_name, out_format="csv", sep: str | None = None):
+        """Output `self.data` to `{out_name}.{csv/txt}`.
+        - out_name (str): filename for the output file without extension.
+        - out_format (str): file extension for the output file, must be either `txt` or `csv`, otherwise raise `ValueError`.
+        - sep (str): seperation character.
+            - When save to ".txt", we set `sep="\\t"` as default.
+            - When save to ".csv", we set `sep=","` as default.
+        """
+        if out_format not in ["txt", "csv"]:
             raise ValueError("out format expected to csv & txt.")
+        
+        df = pd.DataFrame(self.data)
+
+        default_sep = {"csv": ",", "txt": "\t"}
+        
+        if sep is None:
+            sep = default_sep[out_format]
+        df.to_csv(f"{out_name}.{out_format}", sep=sep, header=None, index=False)
+
 
     def _to_trainds(self, out_name="test01", save=False, out_type="txt"):
         if self.data_type == "csv":
@@ -86,7 +105,7 @@ class Transfer:
 
 
 if __name__ == "__main__":
-    data_dir = "/root/knowledge-reasoning-demo/test-data/weapons.csv"
+    data_dir = "/root/knowledge-reasoning-demo/test-data/minitary/weapons.csv"
     name_space = "http://tzzn.kg.cn/#"
     trf = Transfer(data_dir, name_space)
     trf.csv_to_onto(out_name="weapons_test", out_format="rdf")

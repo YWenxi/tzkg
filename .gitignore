@@ -1,11 +1,12 @@
 # ignore virtual environment
-/knowledge-reasoning
-/knowledge-reasoning/*
+knowledge-reasoning
+knowledge-reasoning/*
 
 # ignore compiled files of mln.cpp
 algorithm/mln/mln
 
-# ignore dataset
+# ignore test dataset and pytest
 test-data
+testing
 
 # ignore experiments output
