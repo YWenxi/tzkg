@@ -1,12 +1,15 @@
 # ignore virtual environment
-knowledge-reasoning
-knowledge-reasoning/*
+kg-demo-venv
 
 # ignore compiled files of mln.cpp
-algorithm/mln/mln
+tzkg/reasoners/mln
 
 # ignore test dataset and pytest
 test-data
 testing
 
 # ignore experiments output
+
+# ignore cache
+__pycache__/
+algorithm/__pycache__/
