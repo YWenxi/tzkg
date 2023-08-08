@@ -5,3 +5,5 @@ scikit-learn >= 0.20.2 #For AUC-PR
 rdflib
 pandas
 tqdm
+pyld
+transformers

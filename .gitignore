@@ -2,7 +2,7 @@
 kg-demo-venv
 
 # ignore compiled files of mln.cpp
-tzkg/reasoners/mln
+tzkg/reasoners/mln/mln
 
 # ignore test dataset and pytest
 test-data
@@ -11,5 +11,5 @@ testing
 # ignore experiments output
 
 # ignore cache
-__pycache__/
+*/__pycache__/
 algorithm/__pycache__/
