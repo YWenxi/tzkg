@@ -5,10 +5,11 @@ from rdflib import Graph, Namespace, Literal, URIRef
 from typing import Union
 from sklearn.model_selection import train_test_split
 import warnings
+from shutil import copy
 
 __all__ = ["Transfer"]
 
-def save_to_file(data_dict, output_file):
+def _save_to_file(data_dict, output_file):
     with open(output_file, 'w', encoding='utf-8') as file:
         for key, value in data_dict.items():
             file.write(f"{value}\t{key}\n")
@@ -119,8 +120,8 @@ class Transfer:
         if save:
             # save_to_file(self.entity2id, f"{out_name}_entity2id.{out_type}")
             # save_to_file(self.relation2id, f"{out_name}_relation2id.{out_type}")
-            save_to_file(self.entity2id, f"{out_name}_entity2id.{out_type}")
-            save_to_file(self.relation2id, f"{out_name}_relation2id.{out_type}")
+            _save_to_file(self.entity2id, f"{out_name}_entity2id.{out_type}")
+            _save_to_file(self.relation2id, f"{out_name}_relation2id.{out_type}")
 
     def save_to_trainable_sets(
             self, 
@@ -152,8 +153,8 @@ class Transfer:
             self._to_trainds()
         
         # save dictionary files for future use
-        save_to_file(self.entity2id, os.path.join(out_dir, "entities.dict"))
-        save_to_file(self.relation2id, os.path.join(out_dir, "relations.dict"))
+        _save_to_file(self.entity2id, os.path.join(out_dir, "entities.dict"))
+        _save_to_file(self.relation2id, os.path.join(out_dir, "relations.dict"))
 
         # convert entities to id
         identity_func = lambda x: x
@@ -191,6 +192,7 @@ class Transfer:
         train_df.to_csv(os.path.join(out_dir, "train.txt"), sep=sep, header=None, index=False)
         test_df.to_csv(os.path.join(out_dir, "test.txt"), sep=sep, header=None, index=False)
         val_df.to_csv(os.path.join(out_dir, "valid.txt"), sep=sep, header=None, index=False)
+        copy(os.path.join(out_dir, "train.txt"), os.path.join(out_dir, "train_augmented.txt"))
 
 
 # if __name__ == "__main__":
