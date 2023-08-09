@@ -1,2 +1,3 @@
-from .base import BaseModel
-from .plogicnet import PLOGICNET
+from .kge.base import BaseModel
+from .kge.plogicnet import PLOGICNET
+from .mln.mln import mln

@@ -14,12 +14,12 @@ def mln(
     mln_threads: int = 8,
     preprocess: bool = True
 ):
-    """Markov Logic Network Toolkit
-        mln_path
+    """
+    Markov Logic Network Toolkit
+        main_path (str)
     """
     if mln_path is None:
-        mln_path = os.path.abspath(__file__)
-        mln_path = os.path.join(mln, "mln", "mln")
+        mln_path = "./mln"
 
     if preprocess:
         cmd = '{} -observed {}/train.txt -out-hidden {}/hidden.txt -save {}/mln_saved.txt -thresh-rule {} -iterations 0 -threads {}'.format(mln_path, main_path, main_path, main_path, mln_threshold_of_rule, mln_threads)
