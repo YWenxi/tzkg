@@ -99,29 +99,31 @@ class Transfer:
         self.relation2id = {relation: idx for idx, relation in enumerate(relations)}
 
         if save:
-            save_to_file(self.entity2id, f"{out_name}_entity2id.{out_type}")
-            save_to_file(self.relation2id, f"{out_name}_relation2id.{out_type}")
+            # save_to_file(self.entity2id, f"{out_name}_entity2id.{out_type}")
+            # save_to_file(self.relation2id, f"{out_name}_relation2id.{out_type}")
+            save_to_file(self.entity2id, f"entity2id.{out_type}")
+            save_to_file(self.relation2id, f"relation2id.{out_type}")
 
 
 
-if __name__ == "__main__":
-    data_dir = "/root/knowledge-reasoning-demo/test-data/minitary/weapons.csv"
-    name_space = "http://tzzn.kg.cn/#"
-    trf = Transfer(data_dir, name_space)
-    trf.csv_to_onto(out_name="weapons_test", out_format="rdf")
-    trf._to_trainds(out_name="weapons_test", save=True)
+# if __name__ == "__main__":
+#     data_dir = "/root/knowledge-reasoning-demo/test-data/minitary/weapons.csv"
+#     name_space = "http://tzzn.kg.cn/#"
+#     trf = Transfer(data_dir, name_space)
+#     trf.csv_to_onto(out_name="weapons_test", out_format="rdf")
+#     trf._to_trainds(out_name="weapons_test", save=True)
 
-    data_dir = "/root/knowledge-reasoning-demo/test-data/minitary/cdmo.owl"
-    # name_space = None
-    trf = Transfer(data_dir, name_space=None)
-    trf._to_triples(out_name="cdmo", out_format="txt")
-    trf._to_trainds(out_name="cdmo", save=True, out_type="dict")
+#     data_dir = "/root/knowledge-reasoning-demo/test-data/minitary/cdmo.owl"
+#     # name_space = None
+#     trf = Transfer(data_dir, name_space=None)
+#     trf._to_triples(out_name="cdmo", out_format="txt")
+#     trf._to_trainds(out_name="cdmo", save=True, out_type="dict")
 
-    ##TODO: 需适配json各种表示格式?
-    # data_dir = "/Users/hechengda/Documents/codes/TZ-KG/data/ZJHistory.json"
-    # name_space = "http://tzzn.kg.cn/#"
-    # trf = Transfer(data_dir, name_space=name_space)
-    # trf.json_to_onto(out_name="history", out_format="rdf")
-    # trf._to_triples(out_name="weapons_test", out_format="txt")
-    # trf._to_trainds(out_name="weapons_test", save=True, out_type="dict")
+#     ##TODO: 需适配json各种表示格式?
+#     # data_dir = "/Users/hechengda/Documents/codes/TZ-KG/data/ZJHistory.json"
+#     # name_space = "http://tzzn.kg.cn/#"
+#     # trf = Transfer(data_dir, name_space=name_space)
+#     # trf.json_to_onto(out_name="history", out_format="rdf")
+#     # trf._to_triples(out_name="weapons_test", out_format="txt")
+#     # trf._to_trainds(out_name="weapons_test", save=True, out_type="dict")
 

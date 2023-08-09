@@ -1,6 +1,6 @@
 # setup virtual environment
-python -m venv {your-virtual-enviroment-name}
-source {your-virtual-enviroment-name}/bin/activate # Windows: myenv\Scripts\activate
+python -m venv kg-demo-venv
+source kg-demo-venv/bin/activate # Windows: myenv\Scripts\activate
 pip install -r requirements.txt
 
 # compile mln.cpp
