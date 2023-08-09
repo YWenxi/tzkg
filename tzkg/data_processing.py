@@ -1,8 +1,9 @@
 import json
-
+import os
 import pandas as pd
 from rdflib import Graph, Namespace, Literal, URIRef
 from typing import Union
+from sklearn.model_selection import train_test_split
 
 __all__ = ["Transfer"]
 
@@ -11,12 +12,26 @@ def save_to_file(data_dict, output_file):
         for key, value in data_dict.items():
             file.write(f"{value}\t{key}\n")
 
+def _get_entity_transfer_func(dictionary: dict):
+    """Get the function to convert entity strings to id accoring to dictionary, or reversely.
+        dictionary (dict): the reference for conversion. Used as `id = dictionary[entity_or_relation_string]`
+
+    Return:
+        ent_rel_to_id: the conversion function, which could be used in pd.DataFrame().apply()
+    """
+    def ent_rel_to_id(ent_rel: str):
+        try:
+            return dictionary[ent_rel]
+        except KeyError:
+            print(f"KeyError: {ent_rel}")
+    return ent_rel_to_id
+
 
 class Transfer:
     def __init__(self, data_dir: str, name_space: Union[None, str]=None) -> None:
         """Initialize the transfer tool.
-        data_dir (str): The data file to upload.
-        name_space: Common prefix for urlref; default `None`.
+            data_dir (str): The data file to upload.
+            name_space: Common prefix for urlref; default `None`.
         """
         self.g = Graph()
         self.data_type = data_dir.split(".")[-1]
@@ -101,9 +116,73 @@ class Transfer:
         if save:
             # save_to_file(self.entity2id, f"{out_name}_entity2id.{out_type}")
             # save_to_file(self.relation2id, f"{out_name}_relation2id.{out_type}")
-            save_to_file(self.entity2id, f"entity2id.{out_type}")
-            save_to_file(self.relation2id, f"relation2id.{out_type}")
+            save_to_file(self.entity2id, f"{out_name}_entity2id.{out_type}")
+            save_to_file(self.relation2id, f"{out_name}_relation2id.{out_type}")
 
+    def save_to_trainable_sets(
+            self, 
+            out_dir: 
+            str, 
+            convert_relations = False, 
+            convert_entites = True, 
+            data_split: list[float] = [0.8, 0.1, 0.1],
+            random_state = 42
+            ):
+        """
+        Save to the data directory in the format that could be used by mln.py and later on.
+            out_dir (str): the directory name to save the files. If it is not exists, a new directory shall be made.
+
+        """
+        if not os.path.exists(out_dir):
+            os.mkdir(out_dir)
+
+        if self.data_type == "csv":
+            raw_data = self.data
+        elif self.data_type in ["owl", "rdf"]:
+            raw_data = pd.DataFrame(self.data)
+        
+        # extract_dictionary
+        if "entity2id" not in dir(self) or "relation2id" not in dir(self):
+            self._to_trainds()
+        
+        # save dictionary files for future use
+        save_to_file(self.entity2id, os.path.join(out_dir, "entities.dict"))
+        save_to_file(self.relation2id, os.path.join(out_dir, "relations.dict"))
+
+        # convert entities to id
+        identity_func = lambda x: x
+        converters = {
+            "subject": identity_func,
+            "predicate": identity_func,
+            "object": identity_func
+        }
+        if convert_entites:
+            converter = _get_entity_transfer_func(self.entity2id)
+            converters.update({
+                "subject": converter,
+                "object": converter
+            })
+        
+        # convert relations to id
+        if convert_relations:
+            converters.update({
+                "predicate": _get_entity_transfer_func(self.relation2id)
+            })
+
+        transformed_data = raw_data.copy()
+        if convert_relations or convert_entites:
+            transformed_data = transformed_data.transform(converters, axis=0)
+
+        # split
+        train_df, val_test_df = train_test_split(transformed_data, train_size=data_split[0], random_state=random_state)
+        val_df, test_df = train_test_split(val_test_df, train_size=data_split[1]/(1-data_split[0]), random_state=random_state)
+
+        # save df
+        assert isinstance(train_df, pd.DataFrame)
+        sep = "\t"
+        train_df.to_csv(os.path.join(out_dir, "train.txt"), sep=sep, header=None, index=False)
+        test_df.to_csv(os.path.join(out_dir, "test.txt"), sep=sep, header=None, index=False)
+        val_df.to_csv(os.path.join(out_dir, "valid.txt"), sep=sep, header=None, index=False)
 
 
 # if __name__ == "__main__":
