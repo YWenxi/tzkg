@@ -4,6 +4,7 @@ import pandas as pd
 from rdflib import Graph, Namespace, Literal, URIRef
 from typing import Union
 from sklearn.model_selection import train_test_split
+import warnings
 
 __all__ = ["Transfer"]
 
@@ -21,9 +22,11 @@ def _get_entity_transfer_func(dictionary: dict):
     """
     def ent_rel_to_id(ent_rel: str):
         try:
-            return dictionary[ent_rel]
+            return int(dictionary[ent_rel])
         except KeyError:
-            print(f"KeyError: {ent_rel}")
+            warnings.warn(f"KeyError Catched: Some keys are not found, will return `pd.NA`."
+                          "And this piece of data would be dropped later.", UserWarning)
+            return pd.NA
     return ent_rel_to_id
 
 
@@ -121,8 +124,7 @@ class Transfer:
 
     def save_to_trainable_sets(
             self, 
-            out_dir: 
-            str, 
+            out_dir: str, 
             convert_relations = False, 
             convert_entites = True, 
             data_split: list[float] = [0.8, 0.1, 0.1],
@@ -131,7 +133,11 @@ class Transfer:
         """
         Save to the data directory in the format that could be used by mln.py and later on.
             out_dir (str): the directory name to save the files. If it is not exists, a new directory shall be made.
-
+            convert_relations (bool): whether to convert relations into id in the triplets files to save; default `False`
+            convert_entities (bool): whether to convert entities into id (both in subject and object) in the triplets files to save; default `True`.
+            data_split (list[float]): plan for dataset split, should be a list of three or two floats, defining the portion of each split
+                - example: [train_set, valid_set, test_set]
+            random_state (int): random_state for dataset splits.
         """
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
@@ -172,6 +178,8 @@ class Transfer:
         transformed_data = raw_data.copy()
         if convert_relations or convert_entites:
             transformed_data = transformed_data.transform(converters, axis=0)
+
+        transformed_data.dropna(inplace=True)
 
         # split
         train_df, val_test_df = train_test_split(transformed_data, train_size=data_split[0], random_state=random_state)

@@ -11,6 +11,5 @@ testing
 # ignore experiments output
 
 # ignore cache
-*/__pycache__/*
-algorithm/__pycache__/
-*.pytest_cache
+**/__pycache__/
+**/pytest_cache
