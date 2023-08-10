@@ -126,8 +126,8 @@ class Transfer:
     def save_to_trainable_sets(
             self, 
             out_dir: str, 
-            convert_relations = False, 
-            convert_entites = True, 
+            convert_relations = True, 
+            convert_entities = True, 
             data_split: list[float] = [0.8, 0.1, 0.1],
             random_state = 42
             ):
@@ -163,7 +163,7 @@ class Transfer:
             "predicate": identity_func,
             "object": identity_func
         }
-        if convert_entites:
+        if convert_entities:
             converter = _get_entity_transfer_func(self.entity2id)
             converters.update({
                 "subject": converter,
@@ -177,7 +177,7 @@ class Transfer:
             })
 
         transformed_data = raw_data.copy()
-        if convert_relations or convert_entites:
+        if convert_relations or convert_entities:
             transformed_data = transformed_data.transform(converters, axis=0)
 
         transformed_data.dropna(inplace=True)

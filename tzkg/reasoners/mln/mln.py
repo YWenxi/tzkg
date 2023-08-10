@@ -1,6 +1,5 @@
 # call mln tools
 import os
-from tzkg.datasets.utils import setup_mainspace
 
 __all__ = ["mln", "mln_preprocessing"]
 
@@ -46,5 +45,6 @@ def mln(
     return cmd
 
 def mln_preprocessing(main_path: str, train_dir: str, **config):
+    from tzkg.datasets.utils import setup_mainspace
     main_path = setup_mainspace(main_path, train_dir)
     mln(main_path, **config)

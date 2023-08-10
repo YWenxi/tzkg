@@ -10,10 +10,10 @@ import torch.nn as nn
 from .base import BaseModel
 
 
-class PLOGICNET(BaseModel):
+class KGE(BaseModel):
     def __init__(self, model_name, nentity, nrelation, hidden_dim, gamma, 
                  double_entity_embedding=False, double_relation_embedding=False):
-        super(PLOGICNET, self).__init__()
+        super(KGE, self).__init__()
         self.model_name = model_name
         self.nentity = nentity
         self.nrelation = nrelation

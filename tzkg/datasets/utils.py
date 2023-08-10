@@ -1,8 +1,12 @@
 import torch
 import os
+from tzkg.reasoners import mln
 from torch.utils.data import Dataset
 from typing import Union
 from shutil import copy
+from tzkg.data_processing import Transfer
+import warnings
+import pandas as pd
 
 def ensure_dir(d: str):
     """Make the sure the input path is a directory
@@ -18,7 +22,25 @@ def setup_mainspace(
     main_path: str,
     source_dir: str
 ):
+    """Setup mainspace directory.
+
+    Args:
+        main_path (str): targeted path for mainspace.
+            This directory would hold two files: `train.txt` and `train_augmented.txt`.
+            These two files would used for mln training stage.
+        source_dir (str): source directory which must at least hold `train.txt`
+
+    Raises:
+        FileNotFoundError: if `train.txt` is not in source_dir
+
+    Returns:
+        str: absolute path for main_path/mainspace
+    """
     ensure_dir(main_path)
+
+    if "train.txt" in os.listdir(main_path) and "train_augmented.txt" in os.listdir(main_path):
+        warnings.warn(f"train.txt and train_augmented.txt is already in {main_path}")
+        return os.path.abspath(main_path)
 
     #only need to copy one files: train.txt -> train.txt, train_augmented.txt
     file_to_copy = "train.txt"
@@ -35,7 +57,7 @@ def setup_workspace(
     iteration_id: Union[int, float, str],
     main_path: str
 ):
-    """Setup Workspace Directory for training
+    """Setup Workspace Directory for training under main_path
 
     Args:
         iteration_id (Union[int, float, str]): this would be the name of the workspace directory under the `main_path`
@@ -62,7 +84,74 @@ def setup_workspace(
     return os.path.abspath(workspace_path)
 
 
+def setup_in_one_step(source_file: str, train_test_dir: str, main_path: str,
+                         iteration_id: Union[int, float, str], name_space: str,
+                         random_state=42, **config) -> dict:
+    """A one-step functionals to setup all working directories
 
+    Args:
+        source_file (str): source file
+        train_test_dir (str): where stores train, test, valid sets
+        main_path (str): where stores training inputs for mln
+        iteration_id (Union[int, float, str]): EM training iteration id
+        name_space (str): move mln outputs to this directory and then ready for kge training
+        random_state (int, optional): random state for dataset splitation. Defaults to 42.
+
+    Raises:
+        ValueError: If source file is not in desired format
+
+    Returns:
+        dict: metadata
+    """
+    # set up training files which could be used for kge training from .owl/.txt/.csv/rdf
+    if source_file.split('.')[-1] not in ["csv", "txt", "owl"]:
+        raise ValueError(f"Input source file {source_file} is not in required format, "
+                         "should be in [csv, txt, owl].")
+    trf = Transfer(source_file, name_space)
+
+    ensure_dir(train_test_dir)
+    trf.save_to_trainable_sets(train_test_dir, convert_entities=True, convert_relations=True, random_state=random_state)
+
+    main_path = setup_mainspace(main_path, train_test_dir)
+    mln(main_path)
+    workspace_path = setup_workspace(iteration_id, main_path)
+
+    metadata = {
+            "source_file": os.path.abspath(source_file),
+            "train_test_data_dir": os.path.abspath(train_test_dir),
+            "main_path": main_path,
+            "main_dir": main_path,
+            "iteration_id": iteration_id,
+            "workspace_path": workspace_path,
+            "name_space": name_space
+        }
+    if isinstance(config, dict):
+        config.update(metadata)
+        return config
+
+    return metadata
+
+def read_triples(data_file):
+    """Get triples data from file.
+
+    Args:
+        data_file (str): path of data file
+
+    Returns:
+        list: Nx3
+    """
+    df = pd.read_csv(data_file, header=None, sep="\t")
+    # return df.to_numpy().tolist()
+
+    # need to change the inside list to be tuples so that it is hashable
+    temp = df.to_numpy().tolist()
+    return [tuple(inner_list) for inner_list in temp]
+
+def read_dict(data_file):
+    df = pd.read_csv(data_file, sep="\t", header=None, names=["id", "ent_rel"])
+    ent_rel_2_id = df.set_index("ent_rel").to_dict()["id"]
+    id_2_ent_rel = df.set_index("id").to_dict()["ent_rel"]
+    return ent_rel_2_id, id_2_ent_rel
 
 #########################################
 
