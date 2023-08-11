@@ -42,7 +42,7 @@ class Transfer:
         if self.data_type == "csv":
             self.data = pd.read_csv(data_dir, names=['subject', 'predicate', 'object'])
         elif self.data_type == "txt":
-            self.data = pd.read_csv(data_dir, sep="\t")
+            self.data = pd.read_csv(data_dir, sep="\t", names=['subject', 'predicate', 'object'])
         elif self.data_type in ["owl", "rdf"]:
             self.g.parse(data_dir, format="xml")
             self.data = []
@@ -106,7 +106,7 @@ class Transfer:
 
 
     def _to_trainds(self, out_name="test01", save=False, out_type="txt"):
-        if self.data_type == "csv":
+        if self.data_type in ["csv", "txt"]:
             raw_data = self.data
         elif self.data_type in ["owl", "rdf"]:
             raw_data = pd.DataFrame(self.data)
@@ -143,7 +143,7 @@ class Transfer:
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
 
-        if self.data_type == "csv":
+        if self.data_type in ["csv", "txt"]:
             raw_data = self.data
         elif self.data_type in ["owl", "rdf"]:
             raw_data = pd.DataFrame(self.data)
