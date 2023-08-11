@@ -45,7 +45,7 @@ def log_metrics(mode, step, metrics):
 def init_model(args):
 
     kge_model = KGE(
-        model_name=args.model,
+        model_name=args.model_name,
         nentity=args.nentity,
         nrelation=args.nrelation,
         hidden_dim=args.hidden_dim,
@@ -65,7 +65,7 @@ def save_model(model, optimizer, save_variable_list, args):
     as well as some other variables such as step and learning_rate
     '''
     
-    argparse_dict = vars(args)
+    argparse_dict = dict(vars(args))
     with open(os.path.join(args.save_path, 'config.json'), 'w') as fjson:
         json.dump(argparse_dict, fjson)
 
@@ -94,6 +94,9 @@ def save_model(model, optimizer, save_variable_list, args):
 def train(args):
 
     # Write logs to checkpoint and console
+    if args.save_path is None:
+        args.save_path = os.path.join(args.workspace_path, args.model_name)
+        ensure_dir(args.save_path)
     set_logger(args)
 
     # get triples
@@ -240,8 +243,27 @@ def train(args):
             
         if args.do_valid and (step + 1) % args.valid_steps == 0:
             logging.info('Evaluating on Valid Dataset... [Under Development]')
-            metrics, preds = kge_model.test_step(kge_model, valid_triples, all_true_triples, args)
-            log_metrics('Valid', step, metrics)
+            # metrics, preds = kge_model.test_step(kge_model, valid_triples, all_true_triples, args)
+            # log_metrics('Valid', step, metrics)
+
+            # --------------------------------------------------
+            # Comments by Meng:
+            # Save the prediction results of KGE on validation set.
+            # --------------------------------------------------
+
+            # if args.record:
+            #     # Save the final results
+            #     with open(local_path + '/result_kge_valid.txt', 'w') as fo:
+            #         for metric in metrics:
+            #             fo.write('{} : {}\n'.format(metric, metrics[metric]))
+
+            #     # Save the predictions on test data
+            #     with open(local_path + '/pred_kge_valid.txt', 'w') as fo:
+            #         for h, r, t, f, rk, l in preds:
+            #             fo.write('{}\t{}\t{}\t{}\t{}\n'.format(id2entity[h], id2relation[r], id2entity[t], f, rk))
+            #             for e, val in l:
+            #                 fo.write('{}:{:.4f} '.format(id2entity[e], val))
+            #             fo.write('\n')
     
     save_variable_list = {
         'step': step, 
