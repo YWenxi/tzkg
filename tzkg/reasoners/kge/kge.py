@@ -7,9 +7,16 @@ from __future__ import print_function
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.utils.data import DataLoader
 
+import numpy as np
+import logging
+
+from tzkg.datasets import TestDataset
 from .base import BaseModel
 
+from sklearn.metrics import average_precision_score
+from tqdm import tqdm
 
 class KGE(BaseModel):
     def __init__(self, model_name, nentity, nrelation, hidden_dim, gamma, 
@@ -302,3 +309,168 @@ class KGE(BaseModel):
         }
 
         return log
+    
+
+    @staticmethod
+    def test_step(model, test_triples, all_true_triples, args):
+        '''
+        Evaluate the model on test or valid datasets
+        '''
+        
+        model.eval()
+        
+        if args.countries:
+            #Countries S* datasets are evaluated on AUC-PR
+            #Process test data for AUC-PR evaluation
+            sample = list()
+            y_true  = list()
+            for head, relation, tail in test_triples:
+                for candidate_region in args.regions:
+                    y_true.append(1 if candidate_region == tail else 0)
+                    sample.append((head, relation, candidate_region))
+
+            sample = torch.LongTensor(sample)
+            if args.cuda:
+                sample = sample.cuda()
+
+            with torch.no_grad():
+                y_score = model(sample).squeeze(1).cpu().numpy()
+
+            y_true = np.array(y_true)
+
+            #average_precision_score is the same as auc_pr
+            auc_pr = average_precision_score(y_true, y_score)
+
+            metrics = {'auc_pr': auc_pr}
+            
+        else:
+            #Otherwise use standard (filtered) MRR, MR, HITS@1, HITS@3, and HITS@10 metrics
+            #Prepare dataloader for evaluation
+            test_dataloader_head = DataLoader(
+                TestDataset(
+                    test_triples, 
+                    all_true_triples, 
+                    args.nentity, 
+                    args.nrelation, 
+                    'head-batch'
+                ), 
+                batch_size=args.test_batch_size,
+                num_workers=max(1, args.cpu_num//2), 
+                collate_fn=TestDataset.collate_fn
+            )
+
+            test_dataloader_tail = DataLoader(
+                TestDataset(
+                    test_triples, 
+                    all_true_triples, 
+                    args.nentity, 
+                    args.nrelation, 
+                    'tail-batch'
+                ), 
+                batch_size=args.test_batch_size,
+                num_workers=max(1, args.cpu_num//2), 
+                collate_fn=TestDataset.collate_fn
+            )
+            
+            test_dataset_list = [test_dataloader_head, test_dataloader_tail]
+            
+            logs = []
+
+            step = 0
+            total_steps = sum([len(dataset) for dataset in test_dataset_list])
+
+            # --------------------------------------------------
+            # Here we slightly modify the codes to save the intermediate prediction results of KGE models,
+            # so that we can combine the predictions from KGE and MLN to improve the results.
+            # --------------------------------------------------
+            
+            predictions = []
+
+            with torch.no_grad():
+                for test_dataset in tqdm(test_dataset_list):
+                    for positive_sample, negative_sample, filter_bias, mode in tqdm(test_dataset):
+                        if args.cuda:
+                            positive_sample = positive_sample.cuda()
+                            negative_sample = negative_sample.cuda()
+                            filter_bias = filter_bias.cuda()
+
+                        # Save prediction results
+                        prediction = positive_sample.data.cpu().numpy().tolist()
+
+                        batch_size = positive_sample.size(0)
+
+                        score = torch.sigmoid(model((positive_sample, negative_sample), mode))
+                        score += filter_bias
+
+                        #Explicitly sort all the entities to ensure that there is no test exposure bias
+                        valsort, argsort = torch.sort(score, dim = 1, descending=True)
+
+                        if mode == 'head-batch':
+                            positive_arg = positive_sample[:, 0]
+                        elif mode == 'tail-batch':
+                            positive_arg = positive_sample[:, 2]
+                        else:
+                            raise ValueError('mode %s not supported' % mode)
+
+                        for i in range(batch_size):
+                            #Notice that argsort is not ranking
+                            ranking = (argsort[i, :] == positive_arg[i]).nonzero()
+                            assert ranking.size(0) == 1
+
+                            # For each test triplet, save the ranked list (h, r, [ts]) and ([hs], r, t)
+                            if mode == 'head-batch':
+                                prediction[i].append('h')
+                                prediction[i].append(ranking.item() + 1)
+                                ls = zip(argsort[i, 0:args.topk].data.cpu().numpy().tolist(), valsort[i, 0:args.topk].data.cpu().numpy().tolist())
+                                prediction[i].append(ls)
+                            elif mode == 'tail-batch':
+                                prediction[i].append('t')
+                                prediction[i].append(ranking.item() + 1)
+                                ls = zip(argsort[i, 0:args.topk].data.cpu().numpy().tolist(), valsort[i, 0:args.topk].data.cpu().numpy().tolist())
+                                prediction[i].append(ls)
+
+                            #ranking + 1 is the true ranking used in evaluation metrics
+                            ranking = 1 + ranking.item()
+                            logs.append({
+                                'MR': float(ranking),
+                                'MRR': 1.0/ranking,
+                                'HITS@1': 1.0 if ranking <= 1 else 0.0,
+                                'HITS@3': 1.0 if ranking <= 3 else 0.0,
+                                'HITS@10': 1.0 if ranking <= 10 else 0.0,
+                            })
+
+                        predictions += prediction
+
+                        if step % args.test_log_steps == 0:
+                            logging.info('Evaluating the model... (%d/%d)' % (step, total_steps))
+
+                        step += 1
+
+            metrics = {}
+            for metric in logs[0].keys():
+                metrics[metric] = sum([log[metric] for log in logs])/len(logs)
+
+        return metrics, predictions
+
+    # --------------------------------------------------
+    # Comments by Meng:
+    # Here we add a new function, which will predict the probability of each hidden triplet being true.
+    # The results will be used by MLN.
+    # --------------------------------------------------
+
+    @staticmethod
+    def infer_step(model, infer_triples, args):
+        batch_size = args.batch_size
+        scores = []
+        model.eval()
+        for k in range(0, len(infer_triples), batch_size):
+            bg = k
+            ed = min(k + batch_size, len(infer_triples))
+            batch = infer_triples[bg:ed]
+            batch = torch.LongTensor(batch)
+            if args.cuda:
+                batch = batch.cuda()
+            score = torch.sigmoid(model(batch)).squeeze(1)
+            scores += score.data.cpu().numpy().tolist()
+
+        return scores

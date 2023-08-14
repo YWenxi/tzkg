@@ -243,27 +243,26 @@ def train(args):
             
         if args.do_valid and (step + 1) % args.valid_steps == 0:
             logging.info('Evaluating on Valid Dataset... [Under Development]')
-            # metrics, preds = kge_model.test_step(kge_model, valid_triples, all_true_triples, args)
-            # log_metrics('Valid', step, metrics)
+            metrics, preds = kge_model.test_step(kge_model, valid_triples, all_true_triples, args)
+            log_metrics('Valid', step, metrics)
 
             # --------------------------------------------------
-            # Comments by Meng:
             # Save the prediction results of KGE on validation set.
             # --------------------------------------------------
 
-            # if args.record:
-            #     # Save the final results
-            #     with open(local_path + '/result_kge_valid.txt', 'w') as fo:
-            #         for metric in metrics:
-            #             fo.write('{} : {}\n'.format(metric, metrics[metric]))
+            if args.record:
+                # Save the final results
+                with open(local_path + '/result_kge_valid.txt', 'w') as fo:
+                    for metric in metrics:
+                        fo.write('{} : {}\n'.format(metric, metrics[metric]))
 
-            #     # Save the predictions on test data
-            #     with open(local_path + '/pred_kge_valid.txt', 'w') as fo:
-            #         for h, r, t, f, rk, l in preds:
-            #             fo.write('{}\t{}\t{}\t{}\t{}\n'.format(id2entity[h], id2relation[r], id2entity[t], f, rk))
-            #             for e, val in l:
-            #                 fo.write('{}:{:.4f} '.format(id2entity[e], val))
-            #             fo.write('\n')
+                # Save the predictions on test data
+                with open(local_path + '/pred_kge_valid.txt', 'w') as fo:
+                    for h, r, t, f, rk, l in preds:
+                        fo.write('{}\t{}\t{}\t{}\t{}\n'.format(id2entity[h], id2relation[r], id2entity[t], f, rk))
+                        for e, val in l:
+                            fo.write('{}:{:.4f} '.format(id2entity[e], val))
+                        fo.write('\n')
     
     save_variable_list = {
         'step': step, 

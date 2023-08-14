@@ -35,9 +35,14 @@ class base_configs(Namespace):
 
     do_valid = True
     valid_steps = 5000
+    test_batch_size = 16
+    test_log_steps = 1000
+    topk = 100
     
     double_entity_embedding = True
     double_relation_embedding = True
+
+    countries = False
 
 
 class testing_configs(base_configs):
@@ -51,3 +56,5 @@ class testing_configs(base_configs):
     log_steps = 2
     save_checkpoint_steps = 2
     valid_steps = 5
+    test_log_steps = 1000
+    topk = 100
