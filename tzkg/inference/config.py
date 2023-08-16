@@ -21,6 +21,9 @@ class base_configs(Namespace):
 
     negative_adversarial_sampling = False
     adversarial_temperature = 1.0
+
+    double_entity_embedding = True
+    double_relation_embedding = True
     
     cpu_num = 10
 
@@ -38,11 +41,12 @@ class base_configs(Namespace):
     test_batch_size = 16
     test_log_steps = 1000
     topk = 100
-    
-    double_entity_embedding = True
-    double_relation_embedding = True
 
+    evaluate_train = True
     countries = False
+
+    main_path = None
+    workspace_path = None
 
 
 class testing_configs(base_configs):
@@ -52,7 +56,10 @@ class testing_configs(base_configs):
     name_space = "https://tzkg.cn/#"
     save_path = None
 
-    max_steps = 10
+    do_valid = False
+    evaluate_train = False
+
+    max_steps = 4
     log_steps = 2
     save_checkpoint_steps = 2
     valid_steps = 5
