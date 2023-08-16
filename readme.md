@@ -3,12 +3,13 @@
 
 
 ## To-Do
-- [ ] `dataloader.py`
-  - [ ] testing
-- [ ] mln
-  - [ ] testing
-- [ ] kge modules
-  - [ ] testing
+- [x] `dataloader.py`
+  - [x] testing
+- [x] mln
+  - [x] testing
+- [x] kge modules
+  - [x] testing
+  - [ ] solve the problems that the logger does output to console and save the workspace directory
 
 ## Installation 
 1. Setup Python Enviroment.
@@ -48,5 +49,17 @@ Please refer to the `test_train.py`, which contains a whole training process.
   mln(testing_configs.main_path, testing_configs.workspace_path, preprocess=False)
   ```
 
-- The `setup_in_oen_step()` function reads the original inputs (`csv/txt/owl/rdf`) and then genetate a set of `{train/test/valid}.txt` files which should be used by mln and kge modules.
-- The output `metadata` is a dict object storing information which would later be used to update configuration.  
+- The `setup_in_oen_step()` function reads the original inputs (`csv/txt/owl/rdf`) and then genetate a set of `{train/test/valid}.txt` files which should be used by mln and kge modules. It contains following steps:
+  - data preprocessing: from original data format to a directory where we stores `{train/test/valid}.txt` files.
+  - mln preprocessing: search for rules, find hidden triples
+  - move output files to `workspace` directory
+- The output `metadata` is a dict object storing information which would later be used to update configuration. It could be used to update `configs`
+- The `train()` function runs all KGE training process, including validation and test. And it does an `infer_step` to output final scores to all hidden triples in `annotation.txt`.
+
+### Notes
+- Some test settings could be found at 
+  - `tzkg/inference/config.py`, or
+  - saved `configs.json` on gpu server: `pLogicNet/record/{timestamp}/{iteration}/TransE`
+
+### References
+- `run.py` at `pLogicNet` and `run.py` ar `pLogicNet/kge`

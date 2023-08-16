@@ -57,7 +57,7 @@ class testing_configs(base_configs):
     save_path = None
 
     do_valid = False
-    evaluate_train = False
+    evaluate_train = True
 
     max_steps = 4
     log_steps = 2

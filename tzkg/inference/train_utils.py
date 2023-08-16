@@ -360,60 +360,64 @@ def train(args):
     if args.negative_adversarial_sampling:
         logging.info('adversarial_temperature = %f' % args.adversarial_temperature)
 
-    for step in tqdm(range(init_step, args.max_steps)):
-        
-        log = kge_model.train_step(kge_model, optimizer, train_iterator, args)
-        
-        training_logs.append(log)
-        
-        if step >= warm_up_steps:
-            current_learning_rate = current_learning_rate / 10
-            logging.info('Change learning_rate to %f at step %d' % (current_learning_rate, step))
-            optimizer = torch.optim.Adam(
-                filter(lambda p: p.requires_grad, kge_model.parameters()), 
-                lr=current_learning_rate
-            )
-            warm_up_steps = warm_up_steps * 3
-        
-        if step % args.save_checkpoint_steps == 0:
-            save_variable_list = {
-                'step': step, 
-                'current_learning_rate': current_learning_rate,
-                'warm_up_steps': warm_up_steps
-            }
-            save_model(kge_model, optimizer, save_variable_list, args)
+    with tqdm(total=args.max_steps - init_step, desc=f'Training KGE({args.model_name})', unit='step') as pbar:
+        for step in range(init_step, args.max_steps):
             
-        if step % args.log_steps == 0:
-            metrics = {}
-            for metric in training_logs[0].keys():
-                metrics[metric] = sum([log[metric] for log in training_logs])/len(training_logs)
-            log_metrics('Training average', step, metrics)
-            training_logs = []
+            log = kge_model.train_step(kge_model, optimizer, train_iterator, args)
+            pbar.set_postfix(**log)
+
+            training_logs.append(log)
             
-        if args.do_valid and (step + 1) % args.valid_steps == 0:
-            logging.info('Evaluating on Valid Dataset... [Under Development]')
-            metrics, preds = kge_model.test_step(kge_model, valid_triples, all_true_triples, args)
-            log_metrics('Valid', step, metrics)
+            if step >= warm_up_steps:
+                current_learning_rate = current_learning_rate / 10
+                logging.info('Change learning_rate to %f at step %d' % (current_learning_rate, step))
+                optimizer = torch.optim.Adam(
+                    filter(lambda p: p.requires_grad, kge_model.parameters()), 
+                    lr=current_learning_rate
+                )
+                warm_up_steps = warm_up_steps * 3
+            
+            if step % args.save_checkpoint_steps == 0:
+                save_variable_list = {
+                    'step': step, 
+                    'current_learning_rate': current_learning_rate,
+                    'warm_up_steps': warm_up_steps
+                }
+                save_model(kge_model, optimizer, save_variable_list, args)
+                
+            if step % args.log_steps == 0:
+                metrics = {}
+                for metric in training_logs[0].keys():
+                    metrics[metric] = sum([log[metric] for log in training_logs])/len(training_logs)
+                log_metrics('Training average', step, metrics)
+                training_logs = []
+                
+            if args.do_valid and (step + 1) % args.valid_steps == 0:
+                logging.info('Evaluating on Valid Dataset... [Under Development]')
+                metrics, preds = kge_model.test_step(kge_model, valid_triples, all_true_triples, args)
+                log_metrics('Valid', step, metrics)
 
-            # --------------------------------------------------
-            # Save the prediction results of KGE on validation set.
-            # --------------------------------------------------
+                # --------------------------------------------------
+                # Save the prediction results of KGE on validation set.
+                # --------------------------------------------------
 
-            if args.record:
-                # Save the final results
-                with open(local_path + '/result_kge_valid.txt', 'w') as fo:
-                    for metric in metrics:
-                        fo.write('{} : {}\n'.format(metric, metrics[metric]))
+                if args.record:
+                    # Save the final results
+                    with open(local_path + '/result_kge_valid.txt', 'w') as fo:
+                        for metric in metrics:
+                            fo.write('{} : {}\n'.format(metric, metrics[metric]))
 
-                # Save the predictions on test data
-                with open(local_path + '/pred_kge_valid.txt', 'w') as fo:
-                    for h, r, t, f, rk, l in preds:
-                        # do we really need to convert to entity here?
-                        # fo.write('{}\t{}\t{}\t{}\t{}\n'.format(id2entity[h], id2relation[r], id2entity[t], f, rk))
-                        fo.write('{}\t{}\t{}\t{}\t{}\n'.format(h, r, t, f, rk))
-                        for e, val in l:
-                            fo.write('{}:{:.4f} '.format(e, val))
-                        fo.write('\n')
+                    # Save the predictions on test data
+                    with open(local_path + '/pred_kge_valid.txt', 'w') as fo:
+                        for h, r, t, f, rk, l in preds:
+                            # do we really need to convert to entity here?
+                            # fo.write('{}\t{}\t{}\t{}\t{}\n'.format(id2entity[h], id2relation[r], id2entity[t], f, rk))
+                            fo.write('{}\t{}\t{}\t{}\t{}\n'.format(h, r, t, f, rk))
+                            for e, val in l:
+                                fo.write('{}:{:.4f} '.format(e, val))
+                            fo.write('\n')
+
+            pbar.update(1)
     
     save_variable_list = {
         'step': step, 
