@@ -49,4 +49,4 @@ Please refer to the `test_train.py`, which contains a whole training process.
   ```
 
 - The `setup_in_oen_step()` function reads the original inputs (`csv/txt/owl/rdf`) and then genetate a set of `{train/test/valid}.txt` files which should be used by mln and kge modules.
-- The output `metadata` is a dict object storing all possible 
+- The output `metadata` is a dict object storing information which would later be used to update configuration.  
