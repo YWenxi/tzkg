@@ -30,6 +30,52 @@ def _get_entity_transfer_func(dictionary: dict):
             return pd.NA
     return ent_rel_to_id
 
+def read_triplets_prediction_to_df(pred_output: str, entity_dict_file: dict, relations_dict_file: dict) -> pd.DataFrame:
+    """Read the predicted triplets output after training
+
+    Args:
+        pred_output (str): prediction output file. Usually named as `pred_mln.txt`
+        entity_dict_file (dict): entity dictionary file; usually `entity.dict`.
+        relations_dict_file (dict): relation dictionary file; usually `relation.dict`.
+
+    Returns:
+        pd.DataFrame: Converted output files. With four column labels: `["subject", "predicate", "object", "score"]`
+    """
+
+    def read_entity_dict(filename: str):
+        temp = pd.read_table(filename, names=['number', 'entity'], header=None)
+        print(temp.head())
+        return temp
+
+    def read_relation_dict(filename: str):
+        temp = pd.read_table(filename, names=['number', 'relation'], header=None)
+        print(temp.head())
+        return temp
+
+    def read_pre_txt(filename: str):
+        temp = pd.read_csv(filename, names=['subject', 'predicate', 'object', 'score'], header=None, sep='\t')
+        print(temp.head())
+        return temp
+
+    e = read_entity_dict(entity_dict_file)
+    r = read_relation_dict(relations_dict_file)
+    pre = read_pre_txt(pred_output)
+
+    get_e_fun = lambda number: e.loc[number, ['entity']]
+    get_r_fun = lambda number: r.loc[number, ['relation']]
+    get_score_fun = lambda x: x
+
+    tempdict = {
+        'subject': get_e_fun,
+        'predicate': get_r_fun,
+        'object': get_e_fun,
+        'score': get_score_fun
+    }
+
+    outs = pre.transform(tempdict)
+
+    return outs
+
 
 class Transfer:
     def __init__(self, data_dir: str, name_space: Union[None, str]=None) -> None:
@@ -49,19 +95,56 @@ class Transfer:
             for s, p, o in self.g:
                 self.data.append({"subject": s, "predicate": p, "object": o})
         elif self.data_type == "json":
+            # with open(data_dir, 'r', encoding="utf-8-sig") as file:
+            #     raw_data = file.read()
+            #     cleaned_data = raw_data.replace("\n", "").replace("\t", "").replace("\r", "").replace(r"\'", "").replace(r'\"', "")
+            #     self.data = json.loads(cleaned_data)
             with open(data_dir, 'r', encoding="utf-8-sig") as file:
-                raw_data = file.read()
-                cleaned_data = raw_data.replace("\n", "").replace("\t", "").replace("\r", "").replace(r"\'", "").replace(r'\"', "")
-                self.data = json.loads(cleaned_data)
+                self.data = json.load(file)
         else:
             raise ImportError("suggested file type -> csv/txt/rdf/owl/json ...")
 
         if name_space:
             self.ns = Namespace(name_space)
 
-    def json_transfer(self, out_name, out_format="rdf"):
-        ##TODO: 将Json转换为RDF/三元组/训练数据
-        pass
+    def _to_rdf(self, sub, output_name="test"):
+        # 将节点转换为RDF三元组
+        for item in self.data:
+            start_node = item[sub]['start']
+            end_node = item[sub]['end']
+            relationship_segments = item[sub]['segments']
+
+            # Create node URIs
+            start_node_uri = self.ns['node_' + str(start_node['identity'])]
+            end_node_uri = self.ns['node_' + str(end_node['identity'])]
+
+            # Add start node labels and properties
+            for label in start_node['labels']:
+                label_uri = self.ns[label]
+                self.g.add((start_node_uri, self.ns['hasLabel'], label_uri))
+            
+            for key, value in start_node['properties'].items():
+                property_uri = self.ns[key]
+                self.g.add((start_node_uri, property_uri, Literal(value)))
+
+            # Add end node labels and properties
+            for label in end_node['labels']:
+                label_uri = self.ns[label]
+                self.g.add((end_node_uri, self.ns['hasLabel'], label_uri))
+            
+            for key, value in end_node['properties'].items():
+                property_uri = self.ns[key]
+                self.g.add((end_node_uri, property_uri, Literal(value)))
+
+            # Process relationship segments
+            for segment in relationship_segments:
+                relationship = segment['relationship']
+                relationship_type = relationship['type']
+
+                self.g.add((start_node_uri, self.ns[relationship_type], end_node_uri))
+
+        # 将RDF图序列化为Turtle格式并保存到文件
+        self.g.serialize(destination=f'{output_name}.rdf', format="xml")
         
 
     def csv_to_onto(self, out_name:str, out_format:str="rdf") -> None:
@@ -127,7 +210,7 @@ class Transfer:
             self, 
             out_dir: str, 
             convert_relations = True, 
-            convert_entities = True, 
+            convert_entities = True,
             data_split: list[float] = [0.8, 0.1, 0.1],
             random_state = 42
             ):
@@ -196,9 +279,11 @@ class Transfer:
 
 
 # if __name__ == "__main__":
-#     data_dir = "/root/knowledge-reasoning-demo/test-data/minitary/weapons.csv"
+    # data_dir = "/root/TZ-tech/knowledge-reasoning-demo/test-data/records_new.rdf"
 #     name_space = "http://tzzn.kg.cn/#"
-#     trf = Transfer(data_dir, name_space)
+    # trf = Transfer(data_dir, name_space="http://tzzn.kg.cn/#")
+    # trf._to_rdf(sub='p')
+    # trf.save_to_trainable_sets(out_dir="/root/TZ-tech/knowledge-reasoning-demo/test-data")
 #     trf.csv_to_onto(out_name="weapons_test", out_format="rdf")
 #     trf._to_trainds(out_name="weapons_test", save=True)
 
