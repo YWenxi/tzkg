@@ -4,8 +4,8 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
 import logging
+
 from tzkg.reasoners import KGE
 from tzkg.datasets import TrainDataset, BidirectionalOneShotIterator
 from tzkg.datasets.utils import read_triples, read_dict, ensure_dir
@@ -30,11 +30,12 @@ def set_logger(args):
         filename=log_file,
         filemode='w'
     )
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
-    console.setFormatter(formatter)
-    logging.getLogger('').addHandler(console)
+    # console = logging.StreamHandler()
+    # console.setLevel(logging.INFO)
+    # formatter = logging.Formatter('%(asctime)s %(levelname)-8s %(message)s')
+    # console.setFormatter(formatter)
+    # logging.getLogger('').addHandler(console)
+    logging.getLogger('')
 
 
 def log_metrics(mode, step, metrics):
@@ -234,8 +235,8 @@ def evaluate(mln_pred_file:str, kge_pred_file:str, output_file:str, weight):
 def get_sub_log(log, keys=["loss", "negative_sample_loss", "positive_sample_loss"]):
     sublog = dict()
     short_names = {
-        "negative_sample_loss": "npr",
-        "positive_sample_loss": "ppr"
+        "negative_sample_loss": "npl",
+        "positive_sample_loss": "ppl"
     }
     
     def convert_key(key: str):
@@ -260,6 +261,8 @@ def train(args):
         args.save_path = os.path.join(args.workspace_path, args.model_name)
         ensure_dir(args.save_path)
     set_logger(args)
+
+    logging.info("Hello!")
 
     # get triples
     train_triples = read_triples(os.path.join(args.workspace_path, "train_kge.txt"))

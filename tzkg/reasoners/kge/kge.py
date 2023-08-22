@@ -446,8 +446,8 @@ class KGE(BaseModel):
 
                             predictions += prediction
 
-                            if step % args.test_log_steps == 0:
-                                logging.info('Evaluating the model... (%d/%d)' % (step, total_steps))
+                            # if step % args.test_log_steps == 0:
+                            #     logging.info('Evaluating the model... (%d/%d)' % (step, total_steps))
 
                             step += 1
                             pbar.update(1)
