@@ -56,12 +56,13 @@ class testing_configs(base_configs):
     name_space = "https://tzkg.cn/#"
     save_path = None
 
-    do_valid = False
+    do_valid = True
+    valid_steps = 4
+    
     evaluate_train = True
 
-    max_steps = 4
+    max_steps = 8
     log_steps = 2
     save_checkpoint_steps = 2
-    valid_steps = 5
     test_log_steps = 1000
     topk = 100

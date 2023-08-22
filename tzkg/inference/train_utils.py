@@ -231,6 +231,26 @@ def evaluate(mln_pred_file:str, kge_pred_file:str, output_file:str, weight):
         fo.write('Hit@10: {}\n'.format(hit10))
 
 
+def get_sub_log(log, keys=["loss", "negative_sample_loss", "positive_sample_loss"]):
+    sublog = dict()
+    short_names = {
+        "negative_sample_loss": "npr",
+        "positive_sample_loss": "ppr"
+    }
+    
+    def convert_key(key: str):
+        try:
+            return short_names[key]
+        except:
+            return key
+        
+    for key in keys:
+        try:
+            sublog[convert_key(key)] = log[key]
+        except KeyError:
+            pass
+    return sublog
+
 ################################################################################################
 
 def train(args):
@@ -361,10 +381,12 @@ def train(args):
         logging.info('adversarial_temperature = %f' % args.adversarial_temperature)
 
     with tqdm(total=args.max_steps - init_step, desc=f'Training KGE({args.model_name})', unit='step') as pbar:
+        metric_log = dict()
         for step in range(init_step, args.max_steps):
             
             log = kge_model.train_step(kge_model, optimizer, train_iterator, args)
-            pbar.set_postfix(**log)
+            metric_log.update(get_sub_log(log))
+            pbar.set_postfix(**metric_log)
 
             training_logs.append(log)
             
@@ -396,6 +418,10 @@ def train(args):
                 logging.info('Evaluating on Valid Dataset... [Under Development]')
                 metrics, preds = kge_model.test_step(kge_model, valid_triples, all_true_triples, args)
                 log_metrics('Valid', step, metrics)
+                metric_log.update({
+                    "Val_MR": metrics["MR"],
+                    # "Val_HITS@1": metric["HITS@1"]
+                })
 
                 # --------------------------------------------------
                 # Save the prediction results of KGE on validation set.

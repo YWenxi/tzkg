@@ -87,7 +87,7 @@ def setup_workspace(
 def setup_in_one_step(source_file: str, train_test_dir: str, main_path: str,
                          iteration_id: Union[int, float, str], name_space: str,
                          random_state=42, **config) -> dict:
-    """A one-step functionals to setup all working directories
+    """A one-step functionals to setup all working directories.
 
     Args:
         source_file (str): source file

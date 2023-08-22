@@ -21,14 +21,30 @@ def _get_entity_transfer_func(dictionary: dict):
     Return:
         ent_rel_to_id: the conversion function, which could be used in pd.DataFrame().apply()
     """
-    def ent_rel_to_id(ent_rel: str):
+    def ent_rel_to_id(key: str|int):
         try:
-            return int(dictionary[ent_rel])
+
+            # add type conversions according input types
+            if isinstance(key, str):
+                return int(dictionary[key])
+            if isinstance(key, int):
+                return str(dictionary[key])
         except KeyError:
             warnings.warn(f"KeyError Catched: Some keys are not found, will return `pd.NA`."
                           "And this piece of data would be dropped later.", UserWarning)
             return pd.NA
     return ent_rel_to_id
+
+def read_dict(dict_file: str) -> dict:
+    """Read the `.dict` files: `entities.dict` and `relations.dict`
+
+    Args:
+        dict_file (str): file path.
+
+    Returns:
+        dict: an index-to-entity/relation dictionary
+    """
+    return pd.read_csv(dict_file, sep="\t", index_col=0, header=None).to_dict()[1]
 
 def read_triplets_prediction_to_df(pred_output: str, entity_dict_file: dict, relations_dict_file: dict) -> pd.DataFrame:
     """Read the predicted triplets output after training
@@ -41,38 +57,49 @@ def read_triplets_prediction_to_df(pred_output: str, entity_dict_file: dict, rel
     Returns:
         pd.DataFrame: Converted output files. With four column labels: `["subject", "predicate", "object", "score"]`
     """
-
-    def read_entity_dict(filename: str):
-        temp = pd.read_table(filename, names=['number', 'entity'], header=None)
-        print(temp.head())
-        return temp
-
-    def read_relation_dict(filename: str):
-        temp = pd.read_table(filename, names=['number', 'relation'], header=None)
-        print(temp.head())
-        return temp
-
-    def read_pre_txt(filename: str):
-        temp = pd.read_csv(filename, names=['subject', 'predicate', 'object', 'score'], header=None, sep='\t')
-        print(temp.head())
-        return temp
-
-    e = read_entity_dict(entity_dict_file)
-    r = read_relation_dict(relations_dict_file)
-    pre = read_pre_txt(pred_output)
-
-    get_e_fun = lambda number: e.loc[number, ['entity']]
-    get_r_fun = lambda number: r.loc[number, ['relation']]
-    get_score_fun = lambda x: x
-
-    tempdict = {
-        'subject': get_e_fun,
-        'predicate': get_r_fun,
-        'object': get_e_fun,
-        'score': get_score_fun
+    temp_df = pd.read_csv(pred_output, names=['subject', 'predicate', 'object', 'score'], header=None, sep='\t')
+    ent_converter = _get_entity_transfer_func(read_dict(entity_dict_file))
+    rel_converter = _get_entity_transfer_func(read_dict(relations_dict_file))
+    converters = {
+        "subject": ent_converter,
+        "predicate": rel_converter,
+        "object": ent_converter,
+        "score": lambda x: x
     }
+    return temp_df.transform(converters)
 
-    outs = pre.transform(tempdict)
+def read_rules_to_df(rule_output: str, relations_dict_file: str|None = None) -> pd.DataFrame:
+
+
+    outs = []
+    with open(rule_output, "r") as f:
+        for line in f.readlines():
+            tokens = line.split("\t")
+            # for rule type other than `composition`, 
+            # it has only one relation in r_premise, 
+            # so we insert an empty position at index 3
+            if tokens[0] != "composition":
+                tokens.insert(3, None)
+                tokens[1] = int(tokens[1])
+                tokens[2] = int(tokens[2])
+                tokens[-1] = float(tokens[-1])
+            else:
+                tokens[3] = int(tokens[3])
+            outs.append(tokens)
+
+    outs = pd.DataFrame(outs, columns=["type", "r_hypothesis", "r_premise_0", "r_premise_1", "weight"])
+    
+    if relations_dict_file is not None:
+        rel_converter = _get_entity_transfer_func(read_dict(relations_dict_file))
+        converters = {
+            "type": lambda x: x,
+            "r_hypothesis": rel_converter,
+            "r_premise_0": rel_converter,
+            "r_premise_1": rel_converter,
+            "weight": lambda x: x
+        }
+
+        outs = outs.transform(converters)
 
     return outs
 
@@ -278,7 +305,7 @@ class Transfer:
         copy(os.path.join(out_dir, "train.txt"), os.path.join(out_dir, "train_augmented.txt"))
 
 
-# if __name__ == "__main__":
+if __name__ == "__main__":
     # data_dir = "/root/TZ-tech/knowledge-reasoning-demo/test-data/records_new.rdf"
 #     name_space = "http://tzzn.kg.cn/#"
     # trf = Transfer(data_dir, name_space="http://tzzn.kg.cn/#")
@@ -287,11 +314,11 @@ class Transfer:
 #     trf.csv_to_onto(out_name="weapons_test", out_format="rdf")
 #     trf._to_trainds(out_name="weapons_test", save=True)
 
-#     data_dir = "/root/knowledge-reasoning-demo/test-data/minitary/cdmo.owl"
-#     # name_space = None
-#     trf = Transfer(data_dir, name_space=None)
-#     trf._to_triples(out_name="cdmo", out_format="txt")
-#     trf._to_trainds(out_name="cdmo", save=True, out_type="dict")
+    data_dir = "/root/knowledge-reasoning-demo/test-data/minitary/cdmo.owl"
+    # name_space = None
+    trf = Transfer(data_dir, name_space=None)
+    trf._to_triples(out_name="cdmo", out_format="txt")
+    trf._to_trainds(out_name="cdmo", save=True, out_type="dict")
 
 #     ##TODO: 需适配json各种表示格式?
 #     # data_dir = "/Users/hechengda/Documents/codes/TZ-KG/data/ZJHistory.json"

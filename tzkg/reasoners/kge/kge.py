@@ -387,64 +387,71 @@ class KGE(BaseModel):
             predictions = []
 
             with torch.no_grad():
-                for test_dataset in tqdm(test_dataset_list):
-                    for positive_sample, negative_sample, filter_bias, mode in tqdm(test_dataset):
-                        if args.cuda:
-                            positive_sample = positive_sample.cuda()
-                            negative_sample = negative_sample.cuda()
-                            filter_bias = filter_bias.cuda()
+                for test_dataset_index, test_dataset in enumerate(test_dataset_list):
+                    with tqdm(
+                        total=len(test_dataset),
+                        desc=f"Testing Step ({test_dataset_index+1}/2)",
+                        unit="step"
+                    ) as pbar:
+                        for positive_sample, negative_sample, filter_bias, mode in test_dataset:
+                            if args.cuda:
+                                positive_sample = positive_sample.cuda()
+                                negative_sample = negative_sample.cuda()
+                                filter_bias = filter_bias.cuda()
 
-                        # Save prediction results
-                        prediction = positive_sample.data.cpu().numpy().tolist()
+                            # Save prediction results
+                            prediction = positive_sample.data.cpu().numpy().tolist()
 
-                        batch_size = positive_sample.size(0)
+                            batch_size = positive_sample.size(0)
 
-                        score = torch.sigmoid(model((positive_sample, negative_sample), mode))
-                        score += filter_bias
+                            score = torch.sigmoid(model((positive_sample, negative_sample), mode))
+                            score += filter_bias
 
-                        #Explicitly sort all the entities to ensure that there is no test exposure bias
-                        valsort, argsort = torch.sort(score, dim = 1, descending=True)
+                            #Explicitly sort all the entities to ensure that there is no test exposure bias
+                            valsort, argsort = torch.sort(score, dim = 1, descending=True)
 
-                        if mode == 'head-batch':
-                            positive_arg = positive_sample[:, 0]
-                        elif mode == 'tail-batch':
-                            positive_arg = positive_sample[:, 2]
-                        else:
-                            raise ValueError('mode %s not supported' % mode)
-
-                        for i in range(batch_size):
-                            #Notice that argsort is not ranking
-                            ranking = (argsort[i, :] == positive_arg[i]).nonzero()
-                            assert ranking.size(0) == 1
-
-                            # For each test triplet, save the ranked list (h, r, [ts]) and ([hs], r, t)
                             if mode == 'head-batch':
-                                prediction[i].append('h')
-                                prediction[i].append(ranking.item() + 1)
-                                ls = zip(argsort[i, 0:args.topk].data.cpu().numpy().tolist(), valsort[i, 0:args.topk].data.cpu().numpy().tolist())
-                                prediction[i].append(ls)
+                                positive_arg = positive_sample[:, 0]
                             elif mode == 'tail-batch':
-                                prediction[i].append('t')
-                                prediction[i].append(ranking.item() + 1)
-                                ls = zip(argsort[i, 0:args.topk].data.cpu().numpy().tolist(), valsort[i, 0:args.topk].data.cpu().numpy().tolist())
-                                prediction[i].append(ls)
+                                positive_arg = positive_sample[:, 2]
+                            else:
+                                raise ValueError('mode %s not supported' % mode)
 
-                            #ranking + 1 is the true ranking used in evaluation metrics
-                            ranking = 1 + ranking.item()
-                            logs.append({
-                                'MR': float(ranking),
-                                'MRR': 1.0/ranking,
-                                'HITS@1': 1.0 if ranking <= 1 else 0.0,
-                                'HITS@3': 1.0 if ranking <= 3 else 0.0,
-                                'HITS@10': 1.0 if ranking <= 10 else 0.0,
-                            })
+                            for i in range(batch_size):
+                                #Notice that argsort is not ranking
+                                ranking = (argsort[i, :] == positive_arg[i]).nonzero()
+                                assert ranking.size(0) == 1
 
-                        predictions += prediction
+                                # For each test triplet, save the ranked list (h, r, [ts]) and ([hs], r, t)
+                                if mode == 'head-batch':
+                                    prediction[i].append('h')
+                                    prediction[i].append(ranking.item() + 1)
+                                    ls = zip(argsort[i, 0:args.topk].data.cpu().numpy().tolist(), valsort[i, 0:args.topk].data.cpu().numpy().tolist())
+                                    prediction[i].append(ls)
+                                elif mode == 'tail-batch':
+                                    prediction[i].append('t')
+                                    prediction[i].append(ranking.item() + 1)
+                                    ls = zip(argsort[i, 0:args.topk].data.cpu().numpy().tolist(), valsort[i, 0:args.topk].data.cpu().numpy().tolist())
+                                    prediction[i].append(ls)
 
-                        if step % args.test_log_steps == 0:
-                            logging.info('Evaluating the model... (%d/%d)' % (step, total_steps))
+                                #ranking + 1 is the true ranking used in evaluation metrics
+                                ranking = 1 + ranking.item()
+                                logs.append({
+                                    'MR': float(ranking),
+                                    'MRR': 1.0/ranking,
+                                    'HITS@1': 1.0 if ranking <= 1 else 0.0,
+                                    'HITS@3': 1.0 if ranking <= 3 else 0.0,
+                                    'HITS@10': 1.0 if ranking <= 10 else 0.0,
+                                })
 
-                        step += 1
+                            predictions += prediction
+
+                            if step % args.test_log_steps == 0:
+                                logging.info('Evaluating the model... (%d/%d)' % (step, total_steps))
+
+                            step += 1
+                            pbar.update(1)
+                            # pbar.set_postfix(**(logs[-1]))
 
             metrics = {}
             for metric in logs[0].keys():
