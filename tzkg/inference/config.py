@@ -6,6 +6,7 @@ def override_config(args, d: dict):
         setattr(args, k, v)
 
 class base_configs(Namespace):
+    name_space = "https://tzkg.cn/#"
     model_name = "TransE"
 
     cuda = False
@@ -48,12 +49,13 @@ class base_configs(Namespace):
     main_path = None
     workspace_path = None
 
+    weight = 0.5
+
 
 class testing_configs(base_configs):
     source_file = "test-data/weapons/weapons.csv"
     train_test_data_dir = "test_output/train_test_data_dir"
     main_path = "test_output/record"
-    name_space = "https://tzkg.cn/#"
     save_path = None
 
     do_valid = True

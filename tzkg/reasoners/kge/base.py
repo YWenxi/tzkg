@@ -18,7 +18,7 @@ from tqdm import tqdm
 from sklearn.metrics import f1_score
 from transformers import BertTokenizer
 
-from tzkg.callbacks import CallbackList
+from tzkg.inference.callbacks import CallbackList
 from tzkg.datasets.reasoner_dataset import TrainDataset, TestDataset, BidirectionalOneShotIterator
 
 

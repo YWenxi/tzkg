@@ -84,7 +84,7 @@ def setup_workspace(
     return os.path.abspath(workspace_path)
 
 
-def setup_in_one_step(source_file: str, train_test_dir: str, main_path: str,
+def setup_in_one_step(source_file: str, train_test_data_dir: str, main_path: str,
                          iteration_id: Union[int, float, str], name_space: str,
                          random_state=42, **config) -> dict:
     """A one-step functionals to setup all working directories.
@@ -109,16 +109,16 @@ def setup_in_one_step(source_file: str, train_test_dir: str, main_path: str,
                          "should be in [csv, txt, owl].")
     trf = Transfer(source_file, name_space)
 
-    ensure_dir(train_test_dir)
-    trf.save_to_trainable_sets(train_test_dir, convert_entities=True, convert_relations=True, random_state=random_state)
+    ensure_dir(train_test_data_dir)
+    trf.save_to_trainable_sets(train_test_data_dir, convert_entities=True, convert_relations=True, random_state=random_state)
 
-    main_path = setup_mainspace(main_path, train_test_dir)
+    main_path = setup_mainspace(main_path, train_test_data_dir)
     mln(main_path)
     workspace_path = setup_workspace(iteration_id, main_path)
 
     metadata = {
             "source_file": os.path.abspath(source_file),
-            "train_test_data_dir": os.path.abspath(train_test_dir),
+            "train_test_data_dir": os.path.abspath(train_test_data_dir),
             "main_path": main_path,
             "main_dir": main_path,
             "iteration_id": iteration_id,
