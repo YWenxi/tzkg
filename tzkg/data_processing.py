@@ -46,7 +46,7 @@ def read_dict(dict_file: str) -> dict:
     """
     return pd.read_csv(dict_file, sep="\t", index_col=0, header=None).to_dict()[1]
 
-def read_triplets_prediction_to_df(pred_output: str, entity_dict_file: dict, relations_dict_file: dict) -> pd.DataFrame:
+def read_triplets_prediction_to_df(pred_output: str, entity_dict_file: str, relations_dict_file: str) -> pd.DataFrame:
     """Read the predicted triplets output after training
 
     Args:

@@ -8,6 +8,7 @@ def override_config(args, d: dict):
 class base_configs(Namespace):
     name_space = "https://tzkg.cn/#"
     model_name = "TransE"
+    save_path = None
 
     cuda = False
 

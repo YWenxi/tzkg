@@ -8,6 +8,10 @@ from tzkg.inference.train_utils import augment_triplet, evaluate
 from tzkg.datasets.utils import setup_in_one_step, setup_mainspace, setup_workspace
 from tzkg.reasoners import mln
 
+
+__all__ = ["knowlegde_graph_completion", "train_from_source_file"]
+
+
 def train_from_source_file(source_file, main_path, train_test_data_dir: None,
                            configs: base_configs = base_configs,
                            iterations=2):
