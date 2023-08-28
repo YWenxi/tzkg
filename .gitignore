@@ -5,8 +5,8 @@ kg-demo-venv
 tzkg/reasoners/mln/mln
 
 # ignore test dataset and pytest
-test-data
-testing
+# test-data
+# testing
 **/test_output
 
 # ignore experiments output
