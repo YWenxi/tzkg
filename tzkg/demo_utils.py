@@ -8,6 +8,8 @@ from tzkg.inference.train_utils import augment_triplet, evaluate
 from tzkg.datasets.utils import setup_in_one_step, setup_mainspace, setup_workspace
 from tzkg.reasoners import mln
 
+from typing import Union
+
 
 __all__ = ["knowlegde_graph_completion", "train_from_source_file"]
 
@@ -104,9 +106,9 @@ def train_from_split_dataset(
 
 def knowlegde_graph_completion(
         # train:bool = False,
-        source_file:str|None = None,
-        train_test_data_dir:str|None = None,
-        main_path:str|None = None,
+        source_file:Union[str,None] = None,
+        train_test_data_dir:Union[str,None] = None,
+        main_path:Union[str,None] = None,
         threshold: float = 0.5,
         iterations=2
     ) -> DataFrame:

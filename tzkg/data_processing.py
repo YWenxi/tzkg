@@ -6,6 +6,7 @@ from typing import Union
 from sklearn.model_selection import train_test_split
 import warnings
 from shutil import copy
+from typing import Union, List
 
 __all__ = ["Transfer"]
 
@@ -21,7 +22,7 @@ def _get_entity_transfer_func(dictionary: dict):
     Return:
         ent_rel_to_id: the conversion function, which could be used in pd.DataFrame().apply()
     """
-    def ent_rel_to_id(key: str|int):
+    def ent_rel_to_id(key: Union[str, int]):
         try:
 
             # add type conversions according input types
@@ -68,7 +69,7 @@ def read_triplets_prediction_to_df(pred_output: str, entity_dict_file: str, rela
     }
     return temp_df.transform(converters)
 
-def read_rules_to_df(rule_output: str, relations_dict_file: str|None = None) -> pd.DataFrame:
+def read_rules_to_df(rule_output: str, relations_dict_file: Union[str, None] = None) -> pd.DataFrame:
 
 
     outs = []
@@ -195,7 +196,7 @@ class Transfer:
         self.g.serialize(destination=f'{out_name}.{out_format}', format="xml")
 
 
-    def _to_triples(self, out_name, out_format="csv", sep: str | None = None):
+    def _to_triples(self, out_name, out_format="csv", sep: Union[str, None]= None):
         """Output `self.data` to `{out_name}.{csv/txt}`.
         - out_name (str): filename for the output file without extension.
         - out_format (str): file extension for the output file, must be either `txt` or `csv`, otherwise raise `ValueError`.
@@ -238,7 +239,7 @@ class Transfer:
             out_dir: str, 
             convert_relations = True, 
             convert_entities = True,
-            data_split: list[float] = [0.8, 0.1, 0.1],
+            data_split: List[float] = [0.8, 0.1, 0.1],
             random_state = 42
             ):
         """

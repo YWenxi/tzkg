@@ -14,6 +14,7 @@ tzkg/reasoners/mln/mln
 # ignore cache
 **/__pycache__/
 **/pytest_cache
+.ipynb_checkpoints/
 
 # ignore vscode config
 .vscode
