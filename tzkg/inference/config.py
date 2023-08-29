@@ -69,3 +69,4 @@ class testing_configs(base_configs):
     save_checkpoint_steps = 2
     test_log_steps = 2
     topk = 2
+    mln_threshold_of_triplet = 0.5

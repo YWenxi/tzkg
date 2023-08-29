@@ -455,6 +455,31 @@ def train(args):
     }
     save_model(kge_model, optimizer, save_variable_list, args)
     
+
+    if args.do_test:
+        logging.info('Evaluating on Test Dataset...')
+        metrics, preds = kge_model.test_step(kge_model, test_triples, all_true_triples, args)
+        log_metrics('Test', step, metrics)
+        
+        # --------------------------------------------------
+        # Comments by Meng:
+        # Save the prediction results of KGE on test set.
+        # --------------------------------------------------
+
+        if args.record:
+            # Save the final results
+            with open(local_path + '/result_kge.txt', 'w') as fo:
+                for metric in metrics:
+                    fo.write('{} : {}\n'.format(metric, metrics[metric]))
+
+            # Save the predictions on test data
+            with open(local_path + '/pred_kge.txt', 'w') as fo:
+                for h, r, t, f, rk, l in preds:
+                    fo.write('{}\t{}\t{}\t{}\t{}\n'.format(id2entity[h], id2relation[r], id2entity[t], f, rk))
+                    for e, val in l:
+                        fo.write('{}:{:.4f} '.format(id2entity[e], val))
+                    fo.write('\n')
+
     # --------------------------------------------------
     # Save the annotations on hidden triplets.
     # --------------------------------------------------
