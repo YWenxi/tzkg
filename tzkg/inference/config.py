@@ -47,6 +47,8 @@ class base_configs(Namespace):
     evaluate_train = True
     countries = False
 
+    do_test = False
+
     main_path = None
     workspace_path = None
 
@@ -70,3 +72,5 @@ class testing_configs(base_configs):
     test_log_steps = 2
     topk = 2
     mln_threshold_of_triplet = 0.5
+
+    do_test = True

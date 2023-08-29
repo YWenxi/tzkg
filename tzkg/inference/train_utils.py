@@ -475,9 +475,9 @@ def train(args):
             # Save the predictions on test data
             with open(local_path + '/pred_kge.txt', 'w') as fo:
                 for h, r, t, f, rk, l in preds:
-                    fo.write('{}\t{}\t{}\t{}\t{}\n'.format(id2entity[h], id2relation[r], id2entity[t], f, rk))
+                    fo.write('{}\t{}\t{}\t{}\t{}\n'.format(h, r, t, f, rk))
                     for e, val in l:
-                        fo.write('{}:{:.4f} '.format(id2entity[e], val))
+                        fo.write('{}:{:.4f} '.format(e, val))
                     fo.write('\n')
 
     # --------------------------------------------------
@@ -489,7 +489,7 @@ def train(args):
         scores = kge_model.infer_step(kge_model, hidden_triples, args)
         with open(local_path + '/annotation.txt', 'w') as fo:
             for (h, r, t), s in zip(hidden_triples, scores):
-                fo.write('{}\t{}\t{}\t{}\n'.format(id2entity[h], id2relation[r], id2entity[t], s))
+                fo.write('{}\t{}\t{}\t{}\n'.format(h, r, t, s))
     
     if args.evaluate_train:
         logging.info('Evaluating on Training Dataset...')
