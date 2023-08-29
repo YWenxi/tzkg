@@ -64,8 +64,8 @@ class testing_configs(base_configs):
     
     evaluate_train = True
 
-    max_steps = 8
+    max_steps = 4
     log_steps = 2
     save_checkpoint_steps = 2
-    test_log_steps = 1000
-    topk = 100
+    test_log_steps = 2
+    topk = 2
