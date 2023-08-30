@@ -134,7 +134,7 @@ def knowlegde_graph_completion(
         raise FileNotFoundError("No input training source, try to specify source_file or train_test_data_dir!")
 
     triplets_with_score = read_triplets_prediction_to_df(
-        pred_output=Path(configs.workspace_path) / "pred_mln.txt",
+        pred_output=Path(configs.workspace_path) / "annotation.txt",
         entity_dict_file=Path(configs.train_test_data_dir) / "entities.dict",
         relations_dict_file=Path(configs.train_test_data_dir) / "relations.dict"
     )
